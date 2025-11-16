@@ -19,11 +19,25 @@ if (!process.env.MONGODB_URI) {
 }
 // Middlewares
 app.use(helmet());
+const allowedOrigins = [
+    'https://todo-hazel-mu.vercel.app',
+    'https://todo-1qddngflw-gagans-projects-27b6b951.vercel.app',
+    'http://localhost:3000', // for local development
+];
 app.use(cors({
-    origin: process.env.FRONTEND_URL || "https://todo-hazel-mu.vercel.app",
+    origin: function (origin, callback) {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin)
+            return callback(null, true);
+        if (allowedOrigins.indexOf(origin) === -1) {
+            const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+            return callback(new Error(msg), false);
+        }
+        return callback(null, true);
+    },
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-    allowedHeaders: ['Content-Type', 'Authorization']
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 app.options(/.*/, cors());
 app.use(express.json({ limit: '10mb' }));
