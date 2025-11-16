@@ -27,13 +27,13 @@ app.use(helmet());
 const allowedOrigins = [
   'https://todo-hazel-mu.vercel.app',
   'https://todo-1qddngflw-gagans-projects-27b6b951.vercel.app',
-  'http://localhost:3000', // for local development
+  'http://localhost:5173', // for local development
 ];
 
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Allow requests with no origin (like mobile apps or curl requests)
+      // Allow requests with no origin (like mobile apps or curls requests)
       if (!origin) return callback(null, true);
       
       if (allowedOrigins.indexOf(origin) === -1) {
