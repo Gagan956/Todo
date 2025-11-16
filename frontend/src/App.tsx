@@ -30,24 +30,33 @@ function App() {
 
   // Initialize auth state on app start
   useEffect(() => {
-    console.log('Initializing auth...');
+    console.log('🚀 App starting - initializing auth...');
     initialize();
     setIsInitialized(true);
+    console.log('🏁 Auth initialization complete');
   }, [initialize]);
 
   // Debug logs
   useEffect(() => {
-    console.log('Auth state:', { isAuthenticated, isInitialized, isLoading });
+    console.log('🔍 Auth state changed:', { 
+      isAuthenticated, 
+      isInitialized, 
+      isLoading,
+      hasToken: !!localStorage.getItem('auth_token')
+    });
   }, [isAuthenticated, isInitialized, isLoading]);
 
   // Show loading while initializing auth state
   if (!isInitialized || isLoading) {
+    console.log('⏳ Showing loading screen...');
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
       </div>
     );
   }
+
+  console.log('🎯 Rendering routes - isAuthenticated:', isAuthenticated);
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -57,9 +66,17 @@ function App() {
           <Route 
             path="/login" 
             element={
-              isAuthenticated ? 
-                <Navigate to="/todos" replace /> : 
-                <Login />
+              isAuthenticated ? (
+                <>
+                  {console.log('🔀 Redirecting from /login to /todos')}
+                  <Navigate to="/todos" replace />
+                </>
+              ) : (
+                <>
+                  {console.log('🎪 Rendering Login page')}
+                  <Login />
+                </>
+              )
             } 
           />
           <Route 
@@ -91,11 +108,21 @@ function App() {
           <Route 
             path="/todos" 
             element={
-              <ProtectedRoute>
-                <Layout>
-                  <TodosPage />
-                </Layout>
-              </ProtectedRoute>
+              isAuthenticated ? (
+                <>
+                  {console.log('🎪 Rendering Todos page')}
+                  <ProtectedRoute>
+                    <Layout>
+                      <TodosPage />
+                    </Layout>
+                  </ProtectedRoute>
+                </>
+              ) : (
+                <>
+                  {console.log('🔀 Redirecting from /todos to /login')}
+                  <Navigate to="/login" replace />
+                </>
+              )
             } 
           />
           

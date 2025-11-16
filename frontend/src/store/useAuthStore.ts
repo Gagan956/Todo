@@ -27,10 +27,11 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       token: null,
       isAuthenticated: false,
-      isLoading: false,
+      isLoading: true, // Start as true
       error: null,
 
       login: (user: User, token: string) => {
+        console.log('🔄 Storing token in localStorage:', token);
         localStorage.setItem('auth_token', token);
         set({
           user,
@@ -39,9 +40,11 @@ export const useAuthStore = create<AuthState>()(
           error: null,
           isLoading: false,
         });
+        console.log('✅ Login complete - isAuthenticated:', true);
       },
 
       logout: (redirect = false) => {
+        console.log('🔄 Removing auth token');
         localStorage.removeItem('auth_token');
         set({
           user: null,
@@ -74,17 +77,23 @@ export const useAuthStore = create<AuthState>()(
       },
 
       initialize: () => {
+        console.log('🔄 Initializing auth store...');
         const token = localStorage.getItem('auth_token');
+        console.log('📝 Found token in localStorage:', token);
+        
         if (token) {
+          console.log('✅ Token found, setting authenticated');
           set({ 
             token, 
             isAuthenticated: true,
             isLoading: false 
           });
-          // Note: We set isAuthenticated to true based on token presence
-          // The user data will be fetched by useGetCurrentUser hook
         } else {
-          set({ isLoading: false });
+          console.log('❌ No token found, setting not authenticated');
+          set({ 
+            isAuthenticated: false,
+            isLoading: false 
+          });
         }
       },
     }),
