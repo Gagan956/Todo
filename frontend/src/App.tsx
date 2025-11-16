@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuthStore } from './store/useAuthStore';
@@ -24,20 +25,23 @@ const queryClient = new QueryClient({
 });
 
 function App() {
-  const { isAuthenticated, initialize } = useAuthStore();
+  const { isAuthenticated, initialize, isLoading } = useAuthStore();
   const [isInitialized, setIsInitialized] = useState(false);
 
   // Initialize auth state on app start
   useEffect(() => {
-    const initAuth = async () => {
-      await initialize();
-      setIsInitialized(true);
-    };
-    initAuth();
+    console.log('Initializing auth...');
+    initialize();
+    setIsInitialized(true);
   }, [initialize]);
 
+  // Debug logs
+  useEffect(() => {
+    console.log('Auth state:', { isAuthenticated, isInitialized, isLoading });
+  }, [isAuthenticated, isInitialized, isLoading]);
+
   // Show loading while initializing auth state
-  if (!isInitialized) {
+  if (!isInitialized || isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>

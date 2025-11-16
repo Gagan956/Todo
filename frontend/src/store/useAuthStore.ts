@@ -18,7 +18,7 @@ interface AuthState {
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   updateUser: (user: Partial<User>) => void;
-  initialize: () => Promise<void>;
+  initialize: () => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -73,25 +73,16 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      initialize: async () => {
+      initialize: () => {
         const token = localStorage.getItem('auth_token');
         if (token) {
-          try {
-            // You can add token validation here if needed
-            set({ 
-              token, 
-              isAuthenticated: true,
-              isLoading: false 
-            });
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          } catch (error) {
-            localStorage.removeItem('auth_token');
-            set({ 
-              token: null, 
-              isAuthenticated: false,
-              isLoading: false 
-            });
-          }
+          set({ 
+            token, 
+            isAuthenticated: true,
+            isLoading: false 
+          });
+          // Note: We set isAuthenticated to true based on token presence
+          // The user data will be fetched by useGetCurrentUser hook
         } else {
           set({ isLoading: false });
         }
