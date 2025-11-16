@@ -1,4 +1,4 @@
-import type { Request, Response, NextFunction } from "express";
+import type { Request, Response } from "express";
 import User from "../models/User.js";
 import { generateToken } from "../utils/jwt.js";
 import {
@@ -33,14 +33,10 @@ interface AuthRequest extends Request {
 }
 
 // Signup controller
-export const signup = async (
-  req: AuthRequest,
-  res: Response,
-) => {
+export const signup = async (req: AuthRequest, res: Response) => {
   try {
     const { name, email, password, confirmPassword } = req.body;
 
-    // Validation
     if (!name || !email || !password) {
       return res.status(400).json({
         success: false,
@@ -62,10 +58,9 @@ export const signup = async (
       });
     }
 
-    // Check if user already exists
-    const existingUser = await User.findOne({
-      email: email.toLowerCase().trim(),
-    });
+    const emailClean = email.toLowerCase().trim();
+
+    const existingUser = await User.findOne({ email: emailClean });
     if (existingUser) {
       return res.status(409).json({
         success: false,
@@ -73,20 +68,17 @@ export const signup = async (
       });
     }
 
-    // Create user
     const user = await User.create({
       name: name.trim(),
-      email: email.toLowerCase().trim(),
+      email: emailClean,
       password,
     });
 
-    // Generate JWT token
     const token = generateToken({
       userId: user._id.toString(),
       email: user.email,
     });
 
-    // Set HTTP-only cookie
     res.cookie("token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -94,15 +86,21 @@ export const signup = async (
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
-    // Send welcome email
-    sendWelcomeEmail(user.email, user.name).catch(() => {
+    try {
+      await sendWelcomeEmail(user.email, user.name);
+    } catch {
       return res.status(200).json({
         success: true,
         message: "User created but welcome email could not be sent.",
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+        },
       });
-    });
+    }
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: "User created successfully",
       user: {
@@ -112,7 +110,6 @@ export const signup = async (
       },
     });
   } catch (error: any) {
-    // Handle duplicate key errors
     if (error.code === 11000) {
       return res.status(409).json({
         success: false,
@@ -120,7 +117,6 @@ export const signup = async (
       });
     }
 
-    // Handle validation errors
     if (error.name === "ValidationError") {
       const errors = Object.values(error.errors).map((err: any) => err.message);
       return res.status(400).json({
@@ -136,13 +132,11 @@ export const signup = async (
   }
 };
 
-
 // Login controller
 export const login = async (req: AuthRequest, res: Response) => {
   try {
     const { email, password } = req.body;
 
-    // Validation
     if (!email || !password) {
       return res.status(400).json({
         success: false,
@@ -150,8 +144,8 @@ export const login = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    // Find user
-    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    const emailClean = email.toLowerCase().trim();
+    const user = await User.findOne({ email: emailClean });
     if (!user) {
       return res.status(401).json({
         success: false,
@@ -159,7 +153,6 @@ export const login = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    // Verify password
     const isPasswordValid = await user.comparePassword(password);
     if (!isPasswordValid) {
       return res.status(401).json({
@@ -168,13 +161,11 @@ export const login = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    // Generate JWT token
     const token = generateToken({
       userId: user._id.toString(),
       email: user.email,
     });
 
-    // Set HTTP-only cookie
     res.cookie("token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -182,7 +173,7 @@ export const login = async (req: AuthRequest, res: Response) => {
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    res.json({
+    return res.json({
       success: true,
       message: "Login successful",
       user: {
@@ -209,12 +200,12 @@ export const logout = (req: Request, res: Response) => {
       path: "/",
     });
 
-    res.json({
+    return res.json({
       success: true,
       message: "Logout successful",
     });
-  } catch (error: any) {
-    res.status(500).json({
+  } catch {
+    return res.status(500).json({
       success: false,
       message: "Logout failed",
     });
@@ -226,7 +217,6 @@ export const forgotPassword = async (req: AuthRequest, res: Response) => {
   try {
     const { email } = req.body;
 
-    // Validation
     if (!email || typeof email !== "string") {
       return res.status(400).json({
         success: false,
@@ -234,10 +224,8 @@ export const forgotPassword = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    // Clean the email
     const cleanEmail = email.toLowerCase().trim();
 
-    // Find user
     const user = await User.findOne({ email: cleanEmail });
     if (!user) {
       return res.json({
@@ -247,24 +235,23 @@ export const forgotPassword = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    // Generate reset token
     const resetToken = crypto.randomBytes(32).toString("hex");
     const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour
 
-    // Save reset token to user
     user.resetToken = resetToken;
     user.resetTokenExpiry = resetTokenExpiry;
     await user.save();
 
-    // Send reset email 
-   sendResetPasswordEmail(user.email, resetToken).catch(() => {
-  return res.status(404).json({
-    success: false,
-    message: "Failed to send reset password email.",
-  });
-});
+    try {
+      await sendResetPasswordEmail(user.email, resetToken);
+    } catch {
+      return res.status(404).json({
+        success: false,
+        message: "Failed to send reset password email.",
+      });
+    }
 
-    res.json({
+    return res.json({
       success: true,
       message:
         "If an account with that email exists, a password reset link has been sent",
@@ -289,7 +276,6 @@ export const resetPassword = async (req: AuthRequest, res: Response) => {
   try {
     const { resetToken, password, confirmPassword } = req.body;
 
-    // Validation
     if (!resetToken || !password) {
       return res.status(400).json({
         success: false,
@@ -311,7 +297,6 @@ export const resetPassword = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    // Find user by valid reset token
     const user = await User.findOne({
       resetToken,
       resetTokenExpiry: { $gt: new Date() },
@@ -324,24 +309,21 @@ export const resetPassword = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    // Update password and clear reset token
-    user.password = password; 
+    user.password = password;
     user.resetToken = undefined;
     user.resetTokenExpiry = undefined;
-
     await user.save();
 
-    console.log("✅ Password reset successfully for user:", user.email);
-
-    // Send password changed confirmation (non-blocking)
-    sendPasswordChangedEmail(user.email, user.name).catch((error) => {
+    try {
+      await sendPasswordChangedEmail(user.email, user.name);
+    } catch {
       return res.status(500).json({
         success: false,
         message: "Password changed but confirmation email could not be sent.",
       });
-    });
+    }
 
-    res.json({
+    return res.json({
       success: true,
       message: "Password reset successfully",
     });
@@ -366,6 +348,7 @@ export const getCurrentUser = async (req: Request, res: Response) => {
     const user = await User.findById(req.user.userId).select(
       "-password -resetToken -resetTokenExpiry"
     );
+
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -373,7 +356,7 @@ export const getCurrentUser = async (req: Request, res: Response) => {
       });
     }
 
-    res.json({
+    return res.json({
       success: true,
       user: {
         id: user._id,
@@ -383,7 +366,7 @@ export const getCurrentUser = async (req: Request, res: Response) => {
         updatedAt: user.updatedAt,
       },
     });
-  } catch (error: any) {
+  } catch {
     return res.status(500).json({
       success: false,
       message: "Failed to retrieve user",

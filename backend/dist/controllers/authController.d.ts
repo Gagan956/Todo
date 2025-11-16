@@ -20,10 +20,10 @@ interface AuthRequest extends Request {
         newPassword?: string;
     };
 }
-export declare const signup: (req: AuthRequest, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
-export declare const login: (req: AuthRequest, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
-export declare const logout: (req: Request, res: Response) => void;
-export declare const forgotPassword: (req: AuthRequest, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
-export declare const resetPassword: (req: AuthRequest, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
-export declare const getCurrentUser: (req: Request, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
+export declare const signup: (req: AuthRequest, res: Response) => Promise<Response<any, Record<string, any>>>;
+export declare const login: (req: AuthRequest, res: Response) => Promise<Response<any, Record<string, any>>>;
+export declare const logout: (req: Request, res: Response) => Response<any, Record<string, any>>;
+export declare const forgotPassword: (req: AuthRequest, res: Response) => Promise<Response<any, Record<string, any>>>;
+export declare const resetPassword: (req: AuthRequest, res: Response) => Promise<Response<any, Record<string, any>>>;
+export declare const getCurrentUser: (req: Request, res: Response) => Promise<Response<any, Record<string, any>>>;
 export {};
