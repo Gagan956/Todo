@@ -1,16 +1,16 @@
+// forms/useTodoForm.ts
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { todoSchema, type TodoInput } from '../schemas/zodSchemas';
+import { todoInputSchema, type TodoInput } from '../schemas/zodSchemas';
 
-export const useTodoForm = (defaultValues?: Partial<TodoInput>) => {
+export const useTodoForm = () => {
   return useForm<TodoInput>({
-    resolver: zodResolver(todoSchema),
+    resolver: zodResolver(todoInputSchema),
     defaultValues: {
       title: '',
       description: '',
       priority: 'low',
-      dueDate: undefined,
-      ...defaultValues,
+      dueDate: null,
     },
   });
 };

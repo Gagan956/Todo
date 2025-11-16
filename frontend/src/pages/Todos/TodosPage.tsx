@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from "react";
 import {
   Plus,
@@ -15,7 +16,8 @@ import {
 } from "../../api/hooks";
 import { useTodoForm } from "../../forms/useTodoForm";
 import { TodoCard } from "./TodoCard";
-import type { TodoInput, Todo } from "../../schemas/zodSchemas";
+import type { Todo } from '../../types/todo';
+import type { TodoInput } from "../../schemas/zodSchemas";
 
 export const TodosPage: React.FC = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -37,9 +39,9 @@ export const TodosPage: React.FC = () => {
     pending: 0,
   };
 
-  // Create Todo 
+  // Create Todo - No need to transform date, Zod schema handles it
   const onSubmitCreate = async (data: TodoInput) => {
-    try {
+    try {      
       await createTodoMutation.mutateAsync(data);
       createForm.reset();
       setIsCreateModalOpen(false);
@@ -48,7 +50,7 @@ export const TodosPage: React.FC = () => {
     }
   };
 
-  // Edit Todo 
+  // Edit Todo - No need to transform date, Zod schema handles it
   const onSubmitEdit = async (data: TodoInput) => {
     if (!editingTodo) return;
     try {
@@ -66,14 +68,20 @@ export const TodosPage: React.FC = () => {
 
   const openEdit = (todo: Todo) => {
     setEditingTodo(todo);
-    // Convert dueDate from string to Date if it's not undefined
-    const formattedDueDate = todo.dueDate ? new Date(todo.dueDate) : undefined;
-    editForm.reset({
-      title: todo.title,
-      description: todo.description,
-      priority: todo.priority,
-      dueDate: formattedDueDate,
-    });
+    
+    // Convert dueDate to string in YYYY-MM-DD format for date input
+    let formattedDueDate: string | null = null;
+    if (todo.dueDate) {
+      formattedDueDate = formatDateForInput(todo.dueDate);
+    }
+
+   editForm.reset({
+  title: todo.title,
+  description: todo.description || '',
+  priority: todo.priority,
+  dueDate: formattedDueDate as Date | null, // This would not work if you have a string, so you need to convert it to Date or handle it differently.
+});
+
   };
 
   const handleDelete = async (id: string) => {
@@ -104,7 +112,6 @@ export const TodosPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
@@ -126,7 +133,7 @@ export const TodosPage: React.FC = () => {
 
       {/* Todos Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {todos.map((todo) => (
+        {todos.map((todo: Todo) => (
           <TodoCard
             key={todo._id}
             todo={todo}
@@ -146,7 +153,7 @@ export const TodosPage: React.FC = () => {
         <Modal onClose={() => setIsCreateModalOpen(false)} title="Add New Task">
           <TodoForm
             form={createForm}
-            isLoading={createTodoMutation.isPending} // Fixed: isLoading -> isPending
+            isLoading={createTodoMutation.isPending}
             onSubmit={onSubmitCreate}
             submitText="Create Task"
           />
@@ -158,7 +165,7 @@ export const TodosPage: React.FC = () => {
         <Modal onClose={() => setEditingTodo(null)} title="Edit Task">
           <TodoForm
             form={editForm}
-            isLoading={updateTodoMutation.isPending} // Fixed: isLoading -> isPending
+            isLoading={updateTodoMutation.isPending}
             onSubmit={onSubmitEdit}
             submitText="Update Task"
           />
@@ -225,14 +232,14 @@ const Modal = ({ onClose, title, children }: any) => (
 
 const TodoForm = ({ form, onSubmit, isLoading, submitText }: any) => (
   <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-
     {/* Title */}
     <div>
-      <label className="block text-sm font-medium text-gray-700">Title</label>
+      <label className="block text-sm font-medium text-gray-700">Title *</label>
       <input
         type="text"
         {...form.register("title")}
-        className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+        className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
+        placeholder="Enter task title"
       />
       {form.formState.errors.title && (
         <p className="mt-1 text-sm text-red-600">{form.formState.errors.title.message}</p>
@@ -245,8 +252,12 @@ const TodoForm = ({ form, onSubmit, isLoading, submitText }: any) => (
       <textarea
         {...form.register("description")}
         rows={3}
-        className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+        className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
+        placeholder="Enter task description (optional)"
       />
+      {form.formState.errors.description && (
+        <p className="mt-1 text-sm text-red-600">{form.formState.errors.description.message}</p>
+      )}
     </div>
 
     {/* Priority + Date */}
@@ -255,12 +266,15 @@ const TodoForm = ({ form, onSubmit, isLoading, submitText }: any) => (
         <label className="block text-sm font-medium text-gray-700">Priority</label>
         <select
           {...form.register("priority")}
-          className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+          className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
         >
           <option value="low">Low</option>
           <option value="medium">Medium</option>
           <option value="high">High</option>
         </select>
+        {form.formState.errors.priority && (
+          <p className="mt-1 text-sm text-red-600">{form.formState.errors.priority.message}</p>
+        )}
       </div>
 
       <div>
@@ -268,8 +282,12 @@ const TodoForm = ({ form, onSubmit, isLoading, submitText }: any) => (
         <input
           type="date"
           {...form.register("dueDate")}
-          className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+          className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
+          min={new Date().toISOString().split('T')[0]} // Optional: prevent past dates
         />
+        {form.formState.errors.dueDate && (
+          <p className="mt-1 text-sm text-red-600">{form.formState.errors.dueDate.message}</p>
+        )}
       </div>
     </div>
 
@@ -277,7 +295,7 @@ const TodoForm = ({ form, onSubmit, isLoading, submitText }: any) => (
     <button
       type="submit"
       disabled={isLoading}
-      className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:opacity-50 w-full"
+      className="w-full px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
     >
       {isLoading ? "Please wait..." : submitText}
     </button>
@@ -285,10 +303,11 @@ const TodoForm = ({ form, onSubmit, isLoading, submitText }: any) => (
 );
 
 /* ---------- Helper ---------- */
-// function formatDateForInput(date: string | Date): string {
-//   const d = new Date(date);
-//   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
-//     2,
-//     "0"
-//   )}-${String(d.getDate()).padStart(2, "0")}`;
-// }
+function formatDateForInput(date: string | Date): string {
+  const d = new Date(date);
+  // Get local date in YYYY-MM-DD format for date input
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}

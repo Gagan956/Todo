@@ -14,7 +14,7 @@ export const Forgot: React.FC = () => {
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isSubmitting },
   } = useForm<ForgotPasswordInput>({
     resolver: zodResolver(forgotPasswordSchema),
   });
@@ -27,6 +27,7 @@ export const Forgot: React.FC = () => {
       setTimeout(() => {
         navigate('/login?message=Password reset link sent to your email.');
       }, 3000);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       console.error('Forgot password failed:', error);
     }
@@ -109,11 +110,11 @@ export const Forgot: React.FC = () => {
 
           <button
             type="submit"
-            disabled={forgotPasswordMutation.isLoading}
+            disabled={forgotPasswordMutation.isPending || isSubmitting}
             className="w-full py-2 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-medium 
             rounded-lg shadow transition disabled:opacity-50"
           >
-            {forgotPasswordMutation.isLoading ? 'Sending...' : 'Send Reset Link'}
+            {forgotPasswordMutation.isPending || isSubmitting ? 'Sending...' : 'Send Reset Link'}
           </button>
 
           <p className="text-center text-sm">

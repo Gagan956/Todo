@@ -27,6 +27,7 @@ export const resetPasswordSchema = z.object({
   path: ["confirmPassword"],
 });
 
+// Base todo schema for database (uses Date objects)
 export const todoSchema = z.object({
   title: z.string().min(1, 'Title is required'),
   description: z.string().optional(),
@@ -35,8 +36,19 @@ export const todoSchema = z.object({
   completed: z.boolean().default(false),
 });
 
-export const todoInputSchema = todoSchema.omit({ completed: true }).extend({
-  dueDate: z.string().optional().transform((val) => val ? new Date(val) : undefined),
+// Input schema for forms - accepts string dates and properly transforms
+export const todoInputSchema = z.object({
+  title: z.string().min(1, 'Title is required'),
+  description: z.string().optional(),
+  priority: z.enum(['low', 'medium', 'high']).default('medium'),
+  dueDate: z.preprocess(
+    (val) => {
+      if (!val || val === '') return null;
+      if (val instanceof Date) return val;
+      return new Date(val as string);
+    },
+    z.date().nullable().optional()
+  ),
 });
 
 export type Todo = z.infer<typeof todoSchema> & {
@@ -50,4 +62,4 @@ export type LoginInput = z.infer<typeof loginSchema>;
 export type SignupInput = z.infer<typeof signupSchema>;
 export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
-export type TodoInput = z.infer<typeof todoSchema>;
+export type TodoInput = z.infer<typeof todoInputSchema>;

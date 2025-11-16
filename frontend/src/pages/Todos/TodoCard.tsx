@@ -1,15 +1,6 @@
 import React from 'react';
 import { Edit2, Trash2, Calendar, Flag } from 'lucide-react';
-
-interface Todo {
-  _id: string;
-  title: string;
-  description?: string;
-  priority: 'low' | 'medium' | 'high';
-  dueDate?: string;
-  completed: boolean;
-  createdAt: string;
-}
+import type { Todo } from '../../types/todo';
 
 interface TodoCardProps {
   todo: Todo;
@@ -36,12 +27,50 @@ export const TodoCard: React.FC<TodoCardProps> = ({
   onDelete,
   onToggle,
 }) => {
-  const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
+  const formatDate = (date: string | Date | null | undefined) => {
+    if (!date) return '';
+    
+    try {
+      const dateObj = typeof date === 'string' ? new Date(date) : date;
+      if (isNaN(dateObj.getTime())) return '';
+      
+      return dateObj.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      });
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return '';
+    }
+  };
+
+  const formatCreatedAt = (date: string | Date) => {
+    try {
+      const dateObj = typeof date === 'string' ? new Date(date) : date;
+      if (isNaN(dateObj.getTime())) return '';
+      
+      return dateObj.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      });
+    } catch (error) {
+      console.error('Error formatting created at date:', error);
+      return '';
+    }
+  };
+
+  const handleToggle = () => {
+    onToggle(todo._id);
+  };
+
+  const handleEdit = () => {
+    onEdit(todo);
+  };
+
+  const handleDelete = () => {
+    onDelete(todo._id);
   };
 
   return (
@@ -50,9 +79,9 @@ export const TodoCard: React.FC<TodoCardProps> = ({
         <div className="flex items-start space-x-3 flex-1">
           <input
             type="checkbox"
-            checked={todo.completed}
-            onChange={() => onToggle(todo._id)}
-            className="mt-1 h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+            checked={todo.completed || false}
+            onChange={handleToggle}
+            className="mt-1 h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded cursor-pointer"
           />
           
           <div className="flex-1 min-w-0">
@@ -61,12 +90,12 @@ export const TodoCard: React.FC<TodoCardProps> = ({
             </h3>
             
             {todo.description && (
-              <p className="mt-1 text-sm text-gray-600">
+              <p className={`mt-1 text-sm ${todo.completed ? 'text-gray-400' : 'text-gray-600'}`}>
                 {todo.description}
               </p>
             )}
             
-            <div className="mt-2 flex items-center space-x-4 text-xs text-gray-500">
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-gray-500">
               <div className={`inline-flex items-center space-x-1 px-2 py-1 rounded-full ${priorityColors[todo.priority]}`}>
                 {priorityIcons[todo.priority]}
                 <span className="capitalize">{todo.priority}</span>
@@ -79,22 +108,26 @@ export const TodoCard: React.FC<TodoCardProps> = ({
                 </div>
               )}
               
-              <span>{formatDate(todo.createdAt)}</span>
+              <span className="text-gray-400">
+                Created: {formatCreatedAt(todo.createdAt)}
+              </span>
             </div>
           </div>
         </div>
         
-        <div className="flex items-center space-x-2 ml-4">
+        <div className="flex items-center space-x-1 ml-4">
           <button
-            onClick={() => onEdit(todo)}
-            className="p-1 text-gray-400 hover:text-indigo-600 transition-colors"
+            onClick={handleEdit}
+            className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors"
+            title="Edit todo"
           >
             <Edit2 size={16} />
           </button>
           
           <button
-            onClick={() => onDelete(todo._id)}
-            className="p-1 text-gray-400 hover:text-red-600 transition-colors"
+            onClick={handleDelete}
+            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+            title="Delete todo"
           >
             <Trash2 size={16} />
           </button>
