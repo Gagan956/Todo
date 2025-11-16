@@ -66,12 +66,13 @@ export const TodosPage: React.FC = () => {
 
   const openEdit = (todo: Todo) => {
     setEditingTodo(todo);
-
+    // Convert dueDate from string to Date if it's not undefined
+    const formattedDueDate = todo.dueDate ? new Date(todo.dueDate) : undefined;
     editForm.reset({
       title: todo.title,
       description: todo.description,
       priority: todo.priority,
-      dueDate: todo.dueDate ? formatDateForInput(todo.dueDate) : undefined,
+      dueDate: formattedDueDate,
     });
   };
 
@@ -145,7 +146,7 @@ export const TodosPage: React.FC = () => {
         <Modal onClose={() => setIsCreateModalOpen(false)} title="Add New Task">
           <TodoForm
             form={createForm}
-            isLoading={createTodoMutation.isLoading}
+            isLoading={createTodoMutation.isPending} // Fixed: isLoading -> isPending
             onSubmit={onSubmitCreate}
             submitText="Create Task"
           />
@@ -157,7 +158,7 @@ export const TodosPage: React.FC = () => {
         <Modal onClose={() => setEditingTodo(null)} title="Edit Task">
           <TodoForm
             form={editForm}
-            isLoading={updateTodoMutation.isLoading}
+            isLoading={updateTodoMutation.isPending} // Fixed: isLoading -> isPending
             onSubmit={onSubmitEdit}
             submitText="Update Task"
           />
@@ -284,10 +285,10 @@ const TodoForm = ({ form, onSubmit, isLoading, submitText }: any) => (
 );
 
 /* ---------- Helper ---------- */
-function formatDateForInput(date: string | Date): string {
-  const d = new Date(date);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
-    2,
-    "0"
-  )}-${String(d.getDate()).padStart(2, "0")}`;
-}
+// function formatDateForInput(date: string | Date): string {
+//   const d = new Date(date);
+//   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
+//     2,
+//     "0"
+//   )}-${String(d.getDate()).padStart(2, "0")}`;
+// }

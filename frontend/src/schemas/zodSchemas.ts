@@ -28,14 +28,23 @@ export const resetPasswordSchema = z.object({
 });
 
 export const todoSchema = z.object({
-  title: z.string().min(1, 'Title is required').max(100, 'Title too long'),
-  description: z.string().max(500, 'Description too long').optional(),
-  priority: z.enum(['low', 'medium', 'high']).default('low'),
-  dueDate: z.union([z.string(), z.date()]).optional().transform(val => {
-    if (!val) return undefined;
-    return val instanceof Date ? val : new Date(val);
-  }),
+  title: z.string().min(1, 'Title is required'),
+  description: z.string().optional(),
+  priority: z.enum(['low', 'medium', 'high']).default('medium'),
+  dueDate: z.date().optional().nullable(),
+  completed: z.boolean().default(false),
 });
+
+export const todoInputSchema = todoSchema.omit({ completed: true }).extend({
+  dueDate: z.string().optional().transform((val) => val ? new Date(val) : undefined),
+});
+
+export type Todo = z.infer<typeof todoSchema> & {
+  _id: string;
+  userId: string;
+  createdAt: string;
+  updatedAt: string;
+};
 
 export type LoginInput = z.infer<typeof loginSchema>;
 export type SignupInput = z.infer<typeof signupSchema>;

@@ -39,10 +39,20 @@ export const Login: React.FC = () => {
     }
   }, [authError, setError]);
 
+  // Handle mutation errors
+  useEffect(() => {
+    if (loginMutation.isError) {
+      setError('root', { 
+        message: loginMutation.error?.message || 'Login failed. Please check your credentials.' 
+      });
+    }
+  }, [loginMutation.isError, loginMutation.error, setError]);
+
   const onSubmit = async (data: LoginInput) => {
     try {
       await loginMutation.mutateAsync(data);
     } catch (error) {
+      // Error is handled by the useEffect above
       console.error('Login error:', error);
     }
   };
@@ -51,7 +61,8 @@ export const Login: React.FC = () => {
     setShowPassword(!showPassword);
   };
 
-  const isLoading = authLoading || loginMutation.isLoading;
+  // Use isPending for React Query v4+
+  const isLoading = authLoading || loginMutation.isPending;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">

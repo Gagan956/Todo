@@ -24,7 +24,7 @@ export const Signup: React.FC = () => {
     resolver: zodResolver(signupSchema),
   });
 
-  // Redirect if already authenticated OR after successful signup
+  // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
       navigate('/todos', { replace: true });
@@ -33,10 +33,10 @@ export const Signup: React.FC = () => {
 
   // Handle successful signup - redirect to login with message
   useEffect(() => {
-    if (signupMutation.isSuccess && !signupMutation.isLoading) {
+    if (signupMutation.isSuccess && !signupMutation.isPending) {
       navigate('/login?message=Account created successfully. Please login to continue.');
     }
-  }, [signupMutation.isSuccess, signupMutation.isLoading, navigate]);
+  }, [signupMutation.isSuccess, signupMutation.isPending, navigate]);
 
   // Handle backend auth errors
   useEffect(() => {
@@ -45,11 +45,20 @@ export const Signup: React.FC = () => {
     }
   }, [authError, setError]);
 
+  // Handle mutation errors
+  useEffect(() => {
+    if (signupMutation.isError) {
+      setError('root', { 
+        message: signupMutation.error?.message || 'Signup failed. Please try again.' 
+      });
+    }
+  }, [signupMutation.isError, signupMutation.error, setError]);
+
   const onSubmit = async (data: SignupInput) => {
     try {
       await signupMutation.mutateAsync(data);
-      // No need to navigate here, the useEffect will handle it
     } catch (error) {
+      // Error is handled by the useEffect above
       console.error('Signup error:', error);
     }
   };
@@ -62,7 +71,7 @@ export const Signup: React.FC = () => {
     setShowConfirmPassword(!showConfirmPassword);
   };
 
-  const isLoading = authLoading || signupMutation.isLoading;
+  const isLoading = authLoading || signupMutation.isPending;
   const passwordValue = watch('password');
 
   return (
