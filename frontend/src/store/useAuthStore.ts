@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 interface User {
-  _id: string;
+  id: string;
   name: string;
   email: string;
 }
@@ -14,11 +14,11 @@ interface AuthState {
   isLoading: boolean;
   error: string | null;
   login: (user: User, token: string) => void;
-  logout: (redirect?: boolean) => void;
+  logout: (redirectToLogin?: boolean) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
+  clearError: () => void;
   updateUser: (user: Partial<User>) => void;
-  initialize: () => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -27,34 +27,39 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       token: null,
       isAuthenticated: false,
-      isLoading: true, // Start as true
+      isLoading: false,
       error: null,
 
       login: (user: User, token: string) => {
-        console.log('🔄 Storing token in localStorage:', token);
-        localStorage.setItem('auth_token', token);
-        set({
-          user,
+        set({ 
+          user, 
           token,
-          isAuthenticated: true,
+          isAuthenticated: true, 
           error: null,
-          isLoading: false,
+          isLoading: false 
         });
-        console.log('✅ Login complete - isAuthenticated:', true);
+        console.log('✅ User logged in:', user.email);
       },
 
-      logout: (redirect = false) => {
-        console.log('🔄 Removing auth token');
-        localStorage.removeItem('auth_token');
-        set({
-          user: null,
+      logout: (redirectToLogin = true) => {
+        console.log('🔄 Logging out user...');
+        
+        set({ 
+          user: null, 
           token: null,
-          isAuthenticated: false,
+          isAuthenticated: false, 
           error: null,
-          isLoading: false,
+          isLoading: false 
         });
         
-        if (redirect) {
+        // Clear persisted data
+        localStorage.removeItem('auth-storage');
+        sessionStorage.clear();
+        
+        console.log('✅ User logged out from store');
+        
+        // Redirect to login if needed
+        if (redirectToLogin && typeof window !== 'undefined') {
           window.location.href = '/login';
         }
       },
@@ -64,36 +69,20 @@ export const useAuthStore = create<AuthState>()(
       },
 
       setError: (error: string | null) => {
-        set({ error });
+        set({ error, isLoading: false });
       },
 
-      updateUser: (userData: Partial<User>) => {
+      clearError: () => {
+        set({ error: null });
+      },
+
+      updateUser: (updatedUser: Partial<User>) => {
         const { user } = get();
         if (user) {
-          set({
-            user: { ...user, ...userData },
-          });
-        }
-      },
-
-      initialize: () => {
-        console.log('🔄 Initializing auth store...');
-        const token = localStorage.getItem('auth_token');
-        console.log('📝 Found token in localStorage:', token);
-        
-        if (token) {
-          console.log('✅ Token found, setting authenticated');
           set({ 
-            token, 
-            isAuthenticated: true,
-            isLoading: false 
+            user: { ...user, ...updatedUser } 
           });
-        } else {
-          console.log('❌ No token found, setting not authenticated');
-          set({ 
-            isAuthenticated: false,
-            isLoading: false 
-          });
+          console.log('✅ User profile updated');
         }
       },
     }),
