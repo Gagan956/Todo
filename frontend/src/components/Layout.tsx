@@ -68,7 +68,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               <div ref={menuRef} className="relative">
                 <button
                   onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                  disabled={logoutMutation.isLoading}
+                  disabled={logoutMutation.isPending}
                   className="flex items-center space-x-3 px-4 py-2 rounded-full hover:bg-gray-100 active:scale-95 transition-all duration-150 group"
                 >
                   <div className="flex items-center space-x-2">
@@ -114,10 +114,10 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                       {/* Logout */}
                       <button
                         onClick={handleLogout}
-                        disabled={logoutMutation.isLoading}
+                        disabled={logoutMutation.isPending}
                         className="flex items-center space-x-3 w-full px-4 py-2 text-sm text-red-600 hover:bg-gray-100 disabled:opacity-50 transition"
                       >
-                        {logoutMutation.isLoading ? (
+                        {logoutMutation.isPending ? (
                           <>
                             <div className="h-4 w-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin"></div>
                             <span>Logging out...</span>

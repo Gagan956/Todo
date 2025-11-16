@@ -3,8 +3,7 @@ import { apiClient } from './client';
 import { useAuthStore } from '../store/useAuthStore';
 import type { 
   LoginInput, 
-  SignupInput, 
-  ForgotPasswordInput, 
+  SignupInput,  
   ResetPasswordInput,
   TodoInput 
 } from '../schemas/zodSchemas';
