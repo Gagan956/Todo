@@ -26,7 +26,7 @@ if (!process.env.MONGODB_URI) {
 app.use(helmet());
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || "https://todo-5vr0vlxpb-gagans-projects-27b6b951.vercel.app",
+    origin: process.env.FRONTEND_URL || "https://todo-hazel-mu.vercel.app",
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization']
