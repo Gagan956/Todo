@@ -1,3 +1,4 @@
+// schemas/zodSchemas.ts
 import { z } from 'zod';
 
 export const loginSchema = z.object({
@@ -36,19 +37,17 @@ export const todoSchema = z.object({
   completed: z.boolean().default(false),
 });
 
-// Input schema for forms - accepts string dates and properly transforms
+// Input schema for forms - use union type for better type inference
 export const todoInputSchema = z.object({
   title: z.string().min(1, 'Title is required'),
   description: z.string().optional(),
   priority: z.enum(['low', 'medium', 'high']).default('medium'),
-  dueDate: z.preprocess(
-    (val) => {
-      if (!val || val === '') return null;
+  dueDate: z.union([z.string(), z.date()]).optional().nullable()
+    .transform((val) => {
+      if (!val) return null;
       if (val instanceof Date) return val;
-      return new Date(val as string);
-    },
-    z.date().nullable().optional()
-  ),
+      return new Date(val);
+    }),
 });
 
 export type Todo = z.infer<typeof todoSchema> & {

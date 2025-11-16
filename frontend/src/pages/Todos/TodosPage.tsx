@@ -74,14 +74,13 @@ export const TodosPage: React.FC = () => {
     if (todo.dueDate) {
       formattedDueDate = formatDateForInput(todo.dueDate);
     }
-
-   editForm.reset({
-  title: todo.title,
-  description: todo.description || '',
-  priority: todo.priority,
-  dueDate: formattedDueDate as Date | null, // This would not work if you have a string, so you need to convert it to Date or handle it differently.
-});
-
+    
+    editForm.reset({
+      title: todo.title,
+      description: todo.description || '',
+      priority: todo.priority,
+      dueDate: formattedDueDate,
+    });
   };
 
   const handleDelete = async (id: string) => {
