@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 interface User {
-  id: string;
+  _id: string;
   name: string;
   email: string;
 }
@@ -14,11 +14,11 @@ interface AuthState {
   isLoading: boolean;
   error: string | null;
   login: (user: User, token: string) => void;
-  logout: (redirectToLogin?: boolean) => void;
+  logout: (redirect?: boolean) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
-  clearError: () => void;
   updateUser: (user: Partial<User>) => void;
+  initialize: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -31,35 +31,27 @@ export const useAuthStore = create<AuthState>()(
       error: null,
 
       login: (user: User, token: string) => {
-        set({ 
-          user, 
+        localStorage.setItem('auth_token', token);
+        set({
+          user,
           token,
-          isAuthenticated: true, 
+          isAuthenticated: true,
           error: null,
-          isLoading: false 
+          isLoading: false,
         });
-        console.log('✅ User logged in:', user.email);
       },
 
-      logout: (redirectToLogin = true) => {
-        console.log('🔄 Logging out user...');
-        
-        set({ 
-          user: null, 
+      logout: (redirect = false) => {
+        localStorage.removeItem('auth_token');
+        set({
+          user: null,
           token: null,
-          isAuthenticated: false, 
+          isAuthenticated: false,
           error: null,
-          isLoading: false 
+          isLoading: false,
         });
         
-        // Clear persisted data
-        localStorage.removeItem('auth-storage');
-        sessionStorage.clear();
-        
-        console.log('✅ User logged out from store');
-        
-        // Redirect to login if needed
-        if (redirectToLogin && typeof window !== 'undefined') {
+        if (redirect) {
           window.location.href = '/login';
         }
       },
@@ -69,20 +61,39 @@ export const useAuthStore = create<AuthState>()(
       },
 
       setError: (error: string | null) => {
-        set({ error, isLoading: false });
+        set({ error });
       },
 
-      clearError: () => {
-        set({ error: null });
-      },
-
-      updateUser: (updatedUser: Partial<User>) => {
+      updateUser: (userData: Partial<User>) => {
         const { user } = get();
         if (user) {
-          set({ 
-            user: { ...user, ...updatedUser } 
+          set({
+            user: { ...user, ...userData },
           });
-          console.log('✅ User profile updated');
+        }
+      },
+
+      initialize: async () => {
+        const token = localStorage.getItem('auth_token');
+        if (token) {
+          try {
+            // You can add token validation here if needed
+            set({ 
+              token, 
+              isAuthenticated: true,
+              isLoading: false 
+            });
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          } catch (error) {
+            localStorage.removeItem('auth_token');
+            set({ 
+              token: null, 
+              isAuthenticated: false,
+              isLoading: false 
+            });
+          }
+        } else {
+          set({ isLoading: false });
         }
       },
     }),

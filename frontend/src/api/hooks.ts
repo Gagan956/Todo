@@ -1,9 +1,10 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from './client';
 import { useAuthStore } from '../store/useAuthStore';
 import type { 
   LoginInput, 
-  SignupInput,  
+  SignupInput, 
   ResetPasswordInput,
   TodoInput 
 } from '../schemas/zodSchemas';
@@ -22,7 +23,7 @@ export const useLogin = () => {
       login(data.user, data.token);
     },
     onError: (error: any) => {
-      setError(error.message || 'Login failed');
+      setError(error.response?.data?.message || 'Login failed');
     },
     onSettled: () => {
       setLoading(false);
@@ -43,7 +44,7 @@ export const useSignup = () => {
       login(data.user, data.token);
     },
     onError: (error: any) => {
-      setError(error.message || 'Signup failed');
+      setError(error.response?.data?.message || 'Signup failed');
     },
     onSettled: () => {
       setLoading(false);
@@ -57,20 +58,14 @@ export const useLogout = () => {
   
   return useMutation({
     mutationFn: async () => {
-      console.log('🔄 Calling logout API...');
       const { data } = await apiClient.post('/auth/logout');
       return data;
     },
-    onSuccess: (data) => {
-      console.log('✅ Logout API success:', data);
-      // Clear all queries from cache
+    onSuccess: () => {
       queryClient.clear();
-      // Logout with redirect
       logout(true);
     },
-    onError: (error: any) => {
-      console.error('❌ Logout API error:', error);
-      // Even if API fails, clear local state
+    onError: () => {
       queryClient.clear();
       logout(true);
     },
@@ -80,21 +75,8 @@ export const useLogout = () => {
 export const useForgotPassword = () => {
   return useMutation({
     mutationFn: async (data: { email: string }) => {
-      console.log('🔄 Sending forgot password request:', data);
-      
-      // Ensure we're sending proper JSON
-      const requestData = { email: data.email.trim() };
-      console.log('🔄 Stringified request data:', JSON.stringify(requestData));
-      
-      const response = await apiClient.post('/auth/forgot-password', requestData, {
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      });
+      const response = await apiClient.post('/auth/forgot-password', data);
       return response.data;
-    },
-    onError: (error: any) => {
-      console.error('❌ Forgot password error:', error);
     },
   });
 };
@@ -109,7 +91,7 @@ export const useResetPassword = () => {
 };
 
 export const useGetCurrentUser = () => {
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, token } = useAuthStore();
   
   return useQuery({
     queryKey: ['currentUser'],
@@ -117,10 +99,10 @@ export const useGetCurrentUser = () => {
       const { data } = await apiClient.get('/auth/me');
       return data;
     },
-    enabled: isAuthenticated,
+    enabled: isAuthenticated && !!token,
     staleTime: 5 * 60 * 1000, // 5 minutes
     retry: (failureCount, error: any) => {
-      if (error.status === 401) return false;
+      if (error?.response?.status === 401) return false;
       return failureCount < 3;
     },
   });
@@ -147,7 +129,6 @@ export const useChangePassword = () => {
     mutationFn: async (passwordData: { 
       currentPassword: string; 
       newPassword: string; 
-      confirmPassword?: string;
     }) => {
       const { data } = await apiClient.put('/auth/change-password', passwordData);
       return data;
@@ -165,7 +146,7 @@ export const useTodos = (page = 1, limit = 10) => {
     },
     staleTime: 2 * 60 * 1000, // 2 minutes
     retry: (failureCount, error: any) => {
-      if (error.status === 401) return false;
+      if (error?.response?.status === 401) return false;
       return failureCount < 2;
     },
   });
