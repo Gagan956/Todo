@@ -1,3 +1,4 @@
+// backend: middleware/auth.ts
 import type { Request, Response, NextFunction } from 'express';
 import { verifyToken } from '../utils/jwt.js';
 
@@ -5,6 +6,7 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
   try {
     let token = req.cookies?.token;
     
+    // Also check Authorization header for Bearer token (for flexibility)
     if (!token && req.headers.authorization) {
       const authHeader = req.headers.authorization;
       if (authHeader.startsWith('Bearer ')) {
@@ -21,35 +23,20 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
 
     // Verify token
     const decoded = verifyToken(token);
+    if (!decoded) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid or expired token'
+      });
+    }
+
     req.user = decoded;
-    
     next();
   } catch (error: any) {
+    console.error('Auth middleware error:', error);
     return res.status(401).json({
       success: false,
       message: 'Invalid or expired token'
     });
   }
 };
-
-//   try {
-//     let token = req.cookies?.token;
-    
-//     if (!token && req.headers.authorization) {
-//       const authHeader = req.headers.authorization;
-//       if (authHeader.startsWith('Bearer ')) {
-//         token = authHeader.substring(7);
-//       }
-//     }
-
-//     if (token) {
-//       const decoded = verifyToken(token);
-//       req.user = decoded;
-//     }
-    
-//     next();
-//   } catch (error) {
-//     // For optional auth, we just continue without user
-//     next();
-//   }
-// };

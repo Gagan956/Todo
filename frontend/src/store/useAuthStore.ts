@@ -1,3 +1,4 @@
+// frontend: store/useAuthStore.ts
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
@@ -19,6 +20,7 @@ interface AuthState {
   setError: (error: string | null) => void;
   clearError: () => void;
   updateUser: (user: Partial<User>) => void;
+  initializeAuth: () => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -27,10 +29,16 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       token: null,
       isAuthenticated: false,
-      isLoading: false,
+      isLoading: true,
       error: null,
 
+      initializeAuth: () => {
+        console.log('🔄 Auth store initialized');
+        set({ isLoading: false });
+      },
+
       login: (user: User, token: string) => {
+        console.log('✅ User logging in:', user.email);
         set({ 
           user, 
           token,
@@ -38,11 +46,10 @@ export const useAuthStore = create<AuthState>()(
           error: null,
           isLoading: false 
         });
-        console.log('✅ User logged in:', user.email);
       },
 
       logout: (redirectToLogin = true) => {
-        console.log('🔄 Logging out user...');
+        console.log('🚪 User logging out');
         
         set({ 
           user: null, 
@@ -52,13 +59,9 @@ export const useAuthStore = create<AuthState>()(
           isLoading: false 
         });
         
-        // Clear persisted data
+        // Clear storage
         localStorage.removeItem('auth-storage');
-        sessionStorage.clear();
         
-        console.log('✅ User logged out from store');
-        
-        // Redirect to login if needed
         if (redirectToLogin && typeof window !== 'undefined') {
           window.location.href = '/login';
         }
@@ -69,7 +72,7 @@ export const useAuthStore = create<AuthState>()(
       },
 
       setError: (error: string | null) => {
-        set({ error, isLoading: false });
+        set({ error });
       },
 
       clearError: () => {
@@ -82,17 +85,29 @@ export const useAuthStore = create<AuthState>()(
           set({ 
             user: { ...user, ...updatedUser } 
           });
-          console.log('✅ User profile updated');
         }
       },
     }),
     {
       name: 'auth-storage',
+      // ✅ CRITICAL: Persist ALL auth state including isAuthenticated
       partialize: (state) => ({
         user: state.user,
         token: state.token,
-        isAuthenticated: state.isAuthenticated,
+        isAuthenticated: state.isAuthenticated, // This was missing!
       }),
+      onRehydrateStorage: () => (state) => {
+        console.log('🔄 Store rehydration started');
+        if (state) {
+          // After rehydration, mark as not loading
+          state.isLoading = false;
+          console.log('✅ Store rehydration completed', { 
+            user: !!state.user, 
+            token: !!state.token,
+            isAuthenticated: state.isAuthenticated 
+          });
+        }
+      },
     }
   )
 );

@@ -16,32 +16,16 @@ import { verifyEmailConnection } from "./utils/email.js";
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Validate
-if (!process.env.MONGODB_URI) {
-  console.error(" ERROR: MONGODB_URI is missing in .env file");
-  process.exit(1);
-}
-
 // Middlewares
 app.use(helmet());
 const allowedOrigins = [
-  'https://todo-hazel-mu.vercel.app',
-  'https://todo-1qddngflw-gagans-projects-27b6b951.vercel.app',
+  // 'https://todo-hazel-mu.vercel.app',
   'http://localhost:5173', // for local development
 ];
 
 app.use(
   cors({
-    origin: function (origin, callback) {
-      // Allow requests with no origin (like mobile apps or curls requests)
-      if (!origin) return callback(null, true);
-      
-      if (allowedOrigins.indexOf(origin) === -1) {
-        const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-        return callback(new Error(msg), false);
-      }
-      return callback(null, true);
-    },
+   origin: process.env.FRONTEND_URL ,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
@@ -87,10 +71,9 @@ app.use(errorHandler);
 
 // Database Connect
 mongoose
-  .connect(process.env.MONGODB_URI)
+  .connect(process.env.MONGODB_URI as string)
   .then(async () => {
     console.log(" MongoDB Connected");
-    
     // Verify email connection on startup
     console.log(" Verifying email connection...");
     const emailConnected = await verifyEmailConnection();

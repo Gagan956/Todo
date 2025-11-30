@@ -55,6 +55,7 @@ export const signup = async (req, res) => {
                 success: true,
                 message: "User created but welcome email could not be sent.",
                 user: {
+                    token,
                     id: user._id,
                     name: user.name,
                     email: user.email,
@@ -146,10 +147,11 @@ export const login = async (req, res) => {
 // Logout controller
 export const logout = (req, res) => {
     try {
-        res.clearCookie("token", {
+        res.cookie("token", "", {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
             sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
+            expires: new Date(0), // delete immediately
             path: "/",
         });
         return res.json({

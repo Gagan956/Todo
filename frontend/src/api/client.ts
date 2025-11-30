@@ -1,12 +1,13 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import axios from 'axios';
 import { useAuthStore } from '../store/useAuthStore';
 
-const API_BASE_URL ='https://todo-1-fx1k.onrender.com/api'
-
+const API_BASE_URL = 'http://localhost:5000/api';
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  withCredentials: true,
+  withCredentials: true, // This is crucial for cookies
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -16,15 +17,23 @@ export const apiClient = axios.create({
 // Request interceptor
 apiClient.interceptors.request.use(
   (config) => {
-    const authStore = useAuthStore.getState();
+    // Use getState() to get the current token
+    const token = useAuthStore.getState().token;
     
-    // Add auth token to headers if available
-    if (authStore.token) {
-      config.headers.Authorization = `Bearer ${authStore.token}`;
+    console.log(`🔄 API Request: ${config.method?.toUpperCase()} ${config.url}`, {
+      hasToken: !!token,
+      withCredentials: config.withCredentials
+    });
+    
+    // Add Bearer token if available
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
+    
     return config;
   },
   (error) => {
+    console.error('❌ Request interceptor error:', error);
     return Promise.reject(error);
   }
 );
@@ -32,34 +41,39 @@ apiClient.interceptors.request.use(
 // Response interceptor
 apiClient.interceptors.response.use(
   (response) => {
-    return response; 
+    console.log(`✅ API Success: ${response.status} ${response.config.url}`);
+    return response;
   },
   (error) => {
-    const originalRequest = error.config;
-    
-    console.error('❌ Response error:', {
+    console.error('❌ API Error:', {
       url: error.config?.url,
       status: error.response?.status,
-      message: error.response?.data?.message || error.message,
-      data: error.response?.data
+      message: error.message,
+      code: error.code
     });
-    
-    // Handle 401 Unauthorized
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      const authStore = useAuthStore.getState();
-      authStore.logout();
-      
-      // Redirect to login if not already there
-      if (!window.location.pathname.includes('/login')) {
-        window.location.href = '/login';
-      }
-    }
-    
+
     // Handle network errors
-    if (!error.response) {
+    if (error.code === 'ECONNABORTED' || !error.response) {
       return Promise.reject({
         message: 'Network error. Please check your connection.',
         isNetworkError: true
+      });
+    }
+    
+    // Handle 401 Unauthorized
+    if (error.response?.status === 401) {
+      console.log('🔄 401 detected, logging out...');
+      const authStore = useAuthStore.getState();
+      
+      // Only logout if we were previously authenticated
+      if (authStore.isAuthenticated) {
+        authStore.logout();
+      }
+      
+      return Promise.reject({
+        message: 'Session expired. Please login again.',
+        status: 401,
+        isAuthError: true
       });
     }
     
@@ -67,7 +81,8 @@ apiClient.interceptors.response.use(
     if (error.response.status >= 500) {
       return Promise.reject({
         message: 'Server error. Please try again later.',
-        isServerError: true
+        isServerError: true,
+        status: error.response.status
       });
     }
     
@@ -82,12 +97,15 @@ apiClient.interceptors.response.use(
 );
 
 // Health check function
-export const checkServerHealth = async (): Promise<boolean> => {
+export const checkServerHealth = async (): Promise<{ success: boolean; message?: string }> => {
   try {
     const response = await apiClient.get('/health');
-    return response.data.success === true;
-  } catch (error) {
+    return { success: true, message: response.data.message };
+  } catch (error: any) {
     console.error('❌ Server health check failed:', error);
-    return false;
+    return { 
+      success: false, 
+      message: error.message || 'Cannot connect to server' 
+    };
   }
 };

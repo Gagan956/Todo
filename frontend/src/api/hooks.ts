@@ -165,7 +165,7 @@ export const useTodos = (page = 1, limit = 10) => {
       return data;
     },
     staleTime: 2 * 60 * 1000, // 2 minutes
-    retry: (failureCount, error: any) => {
+    retry: (failureCount, error: any) => { 
       if (error.status === 401) return false;
       return failureCount < 2;
     },
